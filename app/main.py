@@ -3,7 +3,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from pydantic import BaseModel
 import time
-from . import models
+from . import models, schemas
 from .database import engine, SessionLocal, get_db
 from sqlalchemy.orm import Session
 
@@ -12,9 +12,7 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-class Post(BaseModel):
-    title: str
-    content: str
+
 
 while True:
     try:
@@ -56,7 +54,7 @@ def get_latest_post():
         "data": post
     }
 @app.post("/post", status_code=status.HTTP_201_CREATED)
-def create_post(post:Post):
+def create_post(post:schemas.Post):
 
     cursor.execute(""" INSERT INTO posts (title, content) VALUES (%s, %s) RETURNING * """, (post.title, post.content))
     post = cursor.fetchone()
@@ -66,7 +64,7 @@ def create_post(post:Post):
         "data": post
     }
 @app.put("/post/{id}")
-def update_post(post:Post, id:str):
+def update_post(post:schemas.Post, id:str):
     cursor.execute("""UPDATE posts SET title=%s, content=%s WHERE id=%s RETURNING *;""", (post.title, post.content, str(id)))
     post = cursor.fetchone()
     conn.commit()
@@ -104,8 +102,8 @@ def post_ORM_id(id: int, db: Session = Depends(get_db)):
         "data": post,
     }
 
-@app.post("/posts/orm")
-def create_post(post:Post, db:Session=Depends(get_db)):
+@app.post("/posts/orm", status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
+def create_post(post:schemas.Post, db:Session=Depends(get_db)):
     # you can replace this with
     new_post =  models.Post(**post.dict())
     # new_post = models.Post(title=post.title, content=post.content)
@@ -128,7 +126,7 @@ def delete_post_orm(id:int, db:Session=Depends(get_db)):
         "data": delete_post,
     }
 @app.put("/posts/orm/{id}")
-def update_post_orm(id:int,update_post:Post ,db:Session=Depends(get_db)):
+def update_post_orm(id:int,update_post:schemas.UpdatePost ,db:Session=Depends(get_db)):
 
     post_query = db.query(models.Post).filter(models.Post.id==id)
     post = post_query.first()
