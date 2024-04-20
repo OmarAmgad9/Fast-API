@@ -162,3 +162,12 @@ async def create_user(user: schemas.UserIn, db:Session=Depends(get_db)):
     #     raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE)
     return new_user 
 
+@app.get("/user/{id}", status_code=status.HTTP_200_OK, response_model=schemas.UserOut)
+def get_user(id:int, db:Session=Depends(get_db)):
+
+    user = db.query(models.Users).filter(models.Users.id == id).first()
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"This user with {id} Not Found")
+    
+    return user
