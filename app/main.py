@@ -3,7 +3,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from pydantic import BaseModel
 import time
-from . import models, schemas
+from . import models, schemas, utils
 from .database import engine, SessionLocal, get_db
 from sqlalchemy.orm import Session
 
@@ -102,8 +102,8 @@ def post_ORM_id(id: int, db: Session = Depends(get_db)):
         "data": post,
     }
 
-@app.post("/posts/orm", status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
-def create_post(post:schemas.Post, db:Session=Depends(get_db)):
+@app.post("/posts/orm", status_code=status.HTTP_201_CREATED, response_model=schemas.BasePost)
+async def create_post(post:schemas.BasePost, db:Session=Depends(get_db)):
     # you can replace this with
     new_post =  models.Post(**post.dict())
     # new_post = models.Post(title=post.title, content=post.content)
@@ -144,3 +144,21 @@ def update_post_orm(id:int,update_post:schemas.UpdatePost ,db:Session=Depends(ge
         "message": "Update this post is successfully",
         "data": post_query.first(),
     }
+
+
+@app.post("/user/", status_code=status.HTTP_201_CREATED, response_model=schemas.UserOut)
+async def create_user(user: schemas.UserIn, db:Session=Depends(get_db)):
+    new_user = models.Users(**user.dict())
+    new_user.password = utils.hash(user.password)
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    # try:
+    #     cursor.execute("INSERT INTO \"users\" (username, email, password) VALUES (%s, %s, %s) RETURNING *;", (user.username, user.email, user.password))
+    #     new_user = cursor.fetchone()
+    #     conn.commit()
+    # except:
+        
+    #     raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE)
+    return new_user 
+
