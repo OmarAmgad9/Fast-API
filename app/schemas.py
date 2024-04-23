@@ -34,3 +34,9 @@ class UserOut(BaseModel):
     class Config:
         orm_mode = True
 
+class LogIn(BaseModel):
+    email: EmailStr
+    password: str
+
+class TokenData(BaseModel):
+    id: int

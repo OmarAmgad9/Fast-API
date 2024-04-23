@@ -3,12 +3,17 @@ from .. import database, models, utils, schemas
 from sqlalchemy.orm import Session
 from ..database import get_db, engine, cursor, conn
 
-router = APIRouter()
+from .. import Oauth
+
+router = APIRouter(
+    prefix= '/post',
+    tags=['post']
+)
 
 
 
 
-@router.get("/post")
+@router.get("/")
 def get_post():
 
     cursor.execute(""" SELECT * FROM posts;""")
@@ -17,7 +22,7 @@ def get_post():
         "message": "GET all Post",
         "data": posts
     }
-@router.get("/post/{id}")
+@router.get("/{id}")
 def get_post_id(id:str):
     try:
         cursor.execute(""" SELECT * FROM posts WHERE id=%s""",(str(id)))
@@ -28,7 +33,7 @@ def get_post_id(id:str):
         "message": "GET specific post with Id",
         "data": post,
     }
-@router.get("/post/latest")
+@router.get("/latest")
 def get_latest_post():
     cursor.execute(""" SELECT * FROM posts ORDER BY created_at DESC""")
     post = cursor.fetchone()
@@ -36,8 +41,9 @@ def get_latest_post():
         "message": "GET latest post",
         "data": post
     }
-@router.post("/post", status_code=status.HTTP_201_CREATED)
-def create_post(post:schemas.Post):
+
+@router.post("/", status_code=status.HTTP_201_CREATED)
+def create_post(post:schemas.Post, current_user: int = Depends(Oauth.get_current_user)):
 
     cursor.execute(""" INSERT INTO posts (title, content) VALUES (%s, %s) RETURNING * """, (post.title, post.content))
     post = cursor.fetchone()
@@ -46,7 +52,7 @@ def create_post(post:schemas.Post):
         "message": "Created  New Post was Successfully",
         "data": post
     }
-@router.put("/post/{id}")
+@router.put("/{id}")
 def update_post(post:schemas.Post, id:str):
     cursor.execute("""UPDATE posts SET title=%s, content=%s WHERE id=%s RETURNING *;""", (post.title, post.content, str(id)))
     post = cursor.fetchone()
@@ -55,7 +61,7 @@ def update_post(post:schemas.Post, id:str):
         "message": f"Update post with {id} was successfully",
         "data": post,
     }
-@router.delete("/post/{id}")
+@router.delete("/{id}")
 def delete_post(id:str):
     try:
         cursor.execute(""" DELETE FROM posts WHERE id=%s RETURNING *""", str(id))
@@ -70,14 +76,14 @@ def delete_post(id:str):
 # CRUD operation with ORM 
 
 
-@router.get("/posts/orm")
+@router.get("/orm")
 def posts_ORM(db: Session = Depends(get_db)):
     posts = db.query(models.Post).all()
     return {
         "message": "GET All The posts",
         "data": posts,
     }
-@router.get("/posts/orm/{id}")
+@router.get("/orm/{id}")
 def post_ORM_id(id: int, db: Session = Depends(get_db)):
     post = db.query(models.Post).filter(models.Post.id==id).first()
     return {
@@ -85,7 +91,7 @@ def post_ORM_id(id: int, db: Session = Depends(get_db)):
         "data": post,
     }
 
-@router.post("/posts/orm", status_code=status.HTTP_201_CREATED, response_model=schemas.BasePost)
+@router.post("/orm", status_code=status.HTTP_201_CREATED, response_model=schemas.BasePost)
 async def create_post(post:schemas.BasePost, db:Session=Depends(get_db)):
     # you can replace this with
     new_post =  models.Post(**post.dict())
@@ -98,7 +104,7 @@ async def create_post(post:schemas.BasePost, db:Session=Depends(get_db)):
         "data": new_post,
     }
 
-@router.delete("/posts/orm/{id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/orm/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_post_orm(id:int, db:Session=Depends(get_db)):
     delete_post = db.query(models.Post).filter(models.Post.id==id).first()
     db.delete(delete_post)
@@ -108,7 +114,7 @@ def delete_post_orm(id:int, db:Session=Depends(get_db)):
         "message": "Delete this post is successfully",
         "data": delete_post,
     }
-@router.put("/posts/orm/{id}")
+@router.put("/orm/{id}")
 def update_post_orm(id:int,update_post:schemas.UpdatePost ,db:Session=Depends(get_db)):
 
     post_query = db.query(models.Post).filter(models.Post.id==id)
