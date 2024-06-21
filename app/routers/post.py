@@ -86,6 +86,8 @@ def posts_ORM(db: Session = Depends(get_db)):
 @router.get("/orm/{id}")
 def post_ORM_id(id: int, db: Session = Depends(get_db)):
     post = db.query(models.Post).filter(models.Post.id==id).first()
+    if not post:
+        post = "This Id Not valid"
     return {
         "message": "Get specific post with id",
         "data": post,
@@ -133,3 +135,8 @@ def update_post_orm(id:int,update_post:schemas.UpdatePost ,db:Session=Depends(ge
         "message": "Update this post is successfully",
         "data": post_query.first(),
     }
+
+
+
+#return after two month
+
